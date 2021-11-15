@@ -40,16 +40,9 @@
             </div>
         </div>
 
-        <div style="text-align: center;" >
-            <button style="margin: 0px 10px;" onclick="createUser()" type="button" class="btn btn-success">Submit</button>
-            <button style="margin: 0px 10px;" type="button" class="btn btn-info" id="1" >Update</button>
-        </div>
-        
+        <button onclick="createUser()" type="button" class="btn btn-primary">Add User</button>
 
         <div id="alert" style="height: 70px;"></div>
-
-
-
 
     </div>
 
@@ -59,12 +52,12 @@
             <div class="col-12">
                 <table class="table table-bordered">
                     <thead>
-                        <tr style="text-align: center;">
-                            <th scope="col">ID</th>
-                            <th scope="col">NAME</th>
-                            <th scope="col">EMAIL</th>
-                            <th scope="col">EDIT</th>
-                            <th scope="col" >ACTIONS</th>
+                        <tr>
+                            <th scope="col">_id</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Address</th>
+                            <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -79,6 +72,9 @@
 
 
     <script>
+
+        let users = []
+
         function createUser() {
             let name = document.getElementById("inputName").value
             let email = document.getElementById("inputEmail").value
@@ -91,6 +87,8 @@
                     console.log(response);
 
                     document.getElementById("inputName").value = ""
+                    document.getElementById("inputEmail").value = ""
+                    document.getElementById("inputAddress").value = ""
 
                     getAllUser()
 
@@ -106,27 +104,27 @@
                 })
 
         }
- 
+
         function getAllUser() {
 
             axios.get('https://zaid-server-2.herokuapp.com/users')
                 .then(function (response) {
                     console.log(response);
 
-                    let users = response.data;
+                    users = response.data;
 
                     document.getElementById("tableBody").innerHTML = ""
 
                     users.map((eachUser, index) => {
                         document.getElementById("tableBody").innerHTML +=
-                            `<tr>
+                            `<tr id="${eachUser._id}">
                                 <th scope="row">${eachUser._id}</th>
                                 <td>${eachUser.name}</td>
                                 <td>${eachUser.email}</td>
                                 <td>${eachUser.address}</td>
                                 <td>
-                                    <button style="margin: 0px 10px;" type="button" onclick="Edit('${eachUser._id}','${eachUser.name}','${eachUser.email}','${eachUser.address}')" class="btn btn-primary">Edit</button>
-                                    <button style="margin: 0px 10px;" type="button" onclick="deleteUser('${eachUser._id}')" class="btn btn-danger">delete</button>
+                                    <button type="button" onclick="editUser('${eachUser._id}', ${index})" class="btn btn-primary">Edit</button>
+                                    <button type="button" onclick="deleteUser('${eachUser._id}')" class="btn btn-danger">Delete</button>
                                 </td>
                             </tr>`
                     })
@@ -134,18 +132,71 @@
 
         }
 
-        function deleteUser(_id) {
-            
+        function editUser(_id, index) {
+            console.log(_id, index);
 
-            axios.delete(`https://zaid-server-2.herokuapp.com/user/${_id}`)
+            const userObject = users[index]
+
+            console.log("userObject: ", userObject);
+
+            document.getElementById(_id).innerHTML = `
+            <tr id="${_id}"> 
+                
+                    <th scope="row">${_id}</th>
+                    <td><input type="text" id="${_id}-name" value="${userObject.name}" /></td>
+                    <td><input type="text" id="${_id}-email" value="${userObject.email}" /></td>
+                    <td><input type="text" id="${_id}-address" value="${userObject.address}" /></td>
+                    <td id="${_id}-btn">
+                        <button type="button" onclick="updateUser('${_id}')" class="btn btn-success">Update</button>
+                       
+                    </td>
+                </tr>`;
+        }
+
+        function deleteUser(_id) {
+            if (confirm("Are you sure you want to delete?") == true) {
+
+                axios.delete(`https://zaid-server-2.herokuapp.com/user/${_id}`)
+                    .then(function (response) {
+                        console.log(response);
+
+                        getAllUser();
+
+                        document.getElementById("alert").innerHTML =
+                            `<div class="alert alert-danger" role="alert">
+                            User Deleted Success!
+                        </div>`
+
+                        setTimeout(() => {
+                            document.getElementById("alert").innerHTML = ""
+                        }, 3000);
+
+                    })
+            }
+            else {
+                return
+            }
+        }
+
+        function updateUser(_id) {
+
+            document.getElementById(`${_id}-btn`).innerHTML = `<div class="spinner-grow text-dark" role="status">
+  <span class="visually-hidden">Loading...</span>
+</div>`
+
+            const name = document.getElementById(`${_id}-name`).value
+            const email = document.getElementById(`${_id}-email`).value
+            const address = document.getElementById(`${_id}-address`).value
+
+            axios.put(`https://zaid-server-2.herokuapp.com/user/${_id}`, { name, email, address })
                 .then(function (response) {
                     console.log(response);
 
                     getAllUser();
 
                     document.getElementById("alert").innerHTML =
-                        `<div class="alert alert-danger" role="alert">
-                            User Deleted Success!
+                        `<div class="alert alert-success" role="alert">
+                            User Updated Success!
                         </div>`
 
                     setTimeout(() => {
@@ -153,67 +204,12 @@
                     }, 3000);
 
                 })
+
         }
-        function Edit(_id,name,email,address){
-            
-            
-            console.log(name)
-           
-            document.getElementById("inputName").value=name
-            document.getElementById("inputEmail").value=email
-            document.getElementById("inputAddress").value=address
-            
-            let up=document.getElementById("1")
-            up.onclick=function(){
-        
-             name = document.getElementById("inputName").value
-             email = document.getElementById("inputEmail").value
-             address = document.getElementById("inputAddress").value
-             console.log(_id)
-
-             axios({
-                 method:'put',
-                 url:`https://zaid-server-2.herokuapp.com/user/${_id}`,
-                 data:{
-                   name,email,address
-                 }
-                
-             })
-               .then((response)=>{
-                     getAllUser();
-                     if(!name&&!email&&address)
-                     {()=>{
-                       document.getElementById("alert").innerHTML =
-                      `<div class="alert alert-danger" role="alert">
-                                User Edit Unsuccess!
-                            </div>`
-
-                        setTimeout(() => {
-                            document.getElementById("alert").innerHTML = ""
-                        }, 3000);
-                }}
-                     document.getElementById("inputName").value=""
-                     document.getElementById("inputEmail").value=""
-                     document.getElementById("inputAddress").value=""
 
 
-                     document.getElementById("alert").innerHTML =
-                      `<div class="alert alert-primary" role="alert">
-                                User Edit Success!
-                            </div>`
 
-                        setTimeout(() => {
-                            document.getElementById("alert").innerHTML = ""
-                        }, 3000);
 
-               })
-                
-         }
-
-            
-     }
-
-        
 
         getAllUser();
 
